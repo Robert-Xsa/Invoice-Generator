@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pro Forma Invoice Generator</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body{background:#f6f7fb}
+    .app{max-width:1200px}
+    .card{border:0; box-shadow:0 2px 10px rgba(0,0,0,.06); border-radius:16px}
+    .invoice-preview{background:white; padding:32px; border-radius:12px}
+    .table-invoice th,.table-invoice td{vertical-align:middle}
+    .logo-preview{height:56px; object-fit:contain}
+    .small-muted{font-size:.9rem; color:#6c757d}
+    .btn-round{border-radius:999px}
+    @media print { .no-print{display:none!important} body{background:white} }
+  </style>
+</head>
+<body class="py-4">
+  <div class="container app">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h3 class="m-0">Pro Forma Invoice – Web App</h3>
+      <div class="d-flex gap-2 no-print">
+        <button id="btnDownload" class="btn btn-success btn-round px-3">Download PDF</button>
+        <button id="btnPrint" class="btn btn-outline-secondary btn-round px-3">Print</button>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- Editor -->
+      <div class="col-lg-5">
+        <div class="card p-3">
+          <div class="card-body">
+            <h5 class="mb-3">Details</h5>
+            <div class="row g-2">
+              <div class="col-6"><input class="form-control" id="invoiceNo" placeholder="Invoice No"></div>
+              <div class="col-6"><input type="date" class="form-control" id="invoiceDate"></div>
+              <div class="col-6"><input type="date" class="form-control" id="validUntil"></div>
+              <div class="col-6"><input class="form-control" id="referenceNo" placeholder="Reference No"></div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="mb-3">
+              <label class="form-label">Currency Symbol</label>
+              <input class="form-control" id="currency" value="TSh">
+            </div>
+
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <h6>Seller</h6>
+                <input class="form-control mb-2" id="seller" placeholder="Seller Name">
+                <textarea class="form-control mb-2" id="sellerAddress" placeholder="Address" rows="2"></textarea>
+                <input class="form-control mb-2" id="sellerContact" placeholder="Phone / Email">
+                <div class="mb-2">
+                  <label class="form-label small">Logo (optional)</label>
+                  <input type="file" class="form-control" id="logoInput" accept="image/*" />
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <h6>Buyer</h6>
+                <input class="form-control mb-2" id="buyer" placeholder="Buyer Name">
+                <textarea class="form-control mb-2" id="buyerAddress" placeholder="Address" rows="2"></textarea>
+                <input class="form-control mb-2" id="buyerContact" placeholder="Phone / Email">
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <h6 class="m-0">Items</h6>
+              <button class="btn btn-primary btn-sm btn-round" id="addItem">Add Item</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle" id="itemsEditor">
+                <thead>
+                  <tr class="table-light">
+                    <th style="width:42px">#</th>
+                    <th>Description</th>
+                    <th style="width:92px">Qty</th>
+                    <th style="width:130px">Unit Price</th>
+                    <th style="width:110px">Line Total</th>
+                    <th style="width:50px"></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+
+            <div class="row g-2 mt-2">
+              <div class="col-4">
+                <label class="form-label small">Tax (%)</label>
+                <input type="number" class="form-control" id="taxPct" value="0">
+              </div>
+              <div class="col-8">
+                <label class="form-label small">Shipping</label>
+                <input type="number" class="form-control" id="shipping" value="0">
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label">Notes / Terms</label>
+              <textarea class="form-control" id="notes" rows="3" placeholder="Payment due within 7 days via bank transfer..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="col-lg-7">
+        <div id="preview" class="invoice-preview">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <img id="logoPreview" class="logo-preview d-none" alt="logo" />
+              <h4 class="mt-2 mb-0">PRO FORMA INVOICE</h4>
+              <div class="small-muted">Preview</div>
+            </div>
+            <div class="text-end small">
+              <div><strong>Invoice No:</strong> <span data-bind="invoiceNo"></span></div>
+              <div><strong>Date:</strong> <span data-bind="invoiceDate"></span></div>
+              <div><strong>Valid Until:</strong> <span data-bind="validUntil"></span></div>
+              <div><strong>Reference:</strong> <span data-bind="referenceNo"></span></div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <div class="border rounded p-2">
+                <div class="fw-semibold">Seller</div>
+                <div data-bind="seller"></div>
+                <div class="small" data-bind="sellerAddress"></div>
+                <div class="small" data-bind="sellerContact"></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="border rounded p-2">
+                <div class="fw-semibold">Buyer</div>
+                <div data-bind="buyer"></div>
+                <div class="small" data-bind="buyerAddress"></div>
+                <div class="small" data-bind="buyerContact"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered table-invoice">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:42px">#</th>
+                  <th>Description</th>
+                  <th class="text-end" style="width:100px">Qty</th>
+                  <th class="text-end" style="width:140px">Unit Price</th>
+                  <th class="text-end" style="width:140px">Total</th>
+                </tr>
+              </thead>
+              <tbody id="itemsPreview"></tbody>
+            </table>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div>
+                <div class="fw-semibold mb-1">Notes / Terms</div>
+                <div class="small" id="notesPreview"></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <table class="table table-borderless mb-0">
+                <tbody>
+                  <tr>
+                    <td class="text-end fw-semibold">Subtotal:</td>
+                    <td class="text-end" id="subtotalPreview"></td>
+                  </tr>
+                  <tr>
+                    <td class="text-end fw-semibold">Tax:</td>
+                    <td class="text-end" id="taxPreview"></td>
+                  </tr>
+                  <tr>
+                    <td class="text-end fw-semibold">Shipping:</td>
+                    <td class="text-end" id="shippingPreview"></td>
+                  </tr>
+                  <tr class="border-top">
+                    <td class="text-end fw-bold">Total Amount Due:</td>
+                    <td class="text-end fw-bold" id="totalPreview"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mt-4 small text-muted">This is a pro forma invoice. It is not a tax invoice.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const currencyEl = document.getElementById('currency');
+
+    const binds = [
+      ['invoiceNo','invoiceNo'],
+      ['invoiceDate','invoiceDate'],
+      ['validUntil','validUntil'],
+      ['referenceNo','referenceNo'],
+      ['seller','seller'],['sellerAddress','sellerAddress'],['sellerContact','sellerContact'],
+      ['buyer','buyer'],['buyerAddress','buyerAddress'],['buyerContact','buyerContact']
+    ];
+
+    function fmt(n){
+      const sym = currencyEl.value || '';
+      const num = (isNaN(n)?0:n).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+      return `${sym} ${num}`.trim();
+    }
+
+    // Seed one empty row
+    const itemsTbody = document.querySelector('#itemsEditor tbody');
+    const itemsPreview = document.getElementById('itemsPreview');
+    let rowCounter = 0;
+
+    function addRow(desc='', qty=1, price=0){
+      rowCounter++;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="text-muted">${rowCounter}</td>
+        <td><input class="form-control form-control-sm desc" placeholder="Description" value="${desc}"></td>
+        <td><input type="number" step="1" min="0" class="form-control form-control-sm qty" value="${qty}"></td>
+        <td><div class="input-group input-group-sm"><span class="input-group-text sym">${currencyEl.value}</span><input type="number" step="0.01" min="0" class="form-control price" value="${price}"></div></td>
+        <td class="lineTotal text-end small">0.00</td>
+        <td><button class="btn btn-outline-danger btn-sm" title="Remove">&times;</button></td>`;
+
+      tr.querySelector('.qty').addEventListener('input', recalc);
+      tr.querySelector('.price').addEventListener('input', recalc);
+      tr.querySelector('.desc').addEventListener('input', renderPreview);
+      tr.querySelector('button').addEventListener('click', () => { tr.remove(); recalc(); });
+      itemsTbody.appendChild(tr);
+      recalc();
+    }
+
+    document.getElementById('addItem').addEventListener('click', ()=>addRow());
+
+    // Live binds
+    binds.forEach(([inputId, bindName])=>{
+      const el = document.getElementById(inputId);
+      const target = document.querySelector(`[data-bind="${bindName}"]`);
+      const handler = ()=> target.textContent = el.value;
+      el.addEventListener('input', handler);
+      handler();
+    });
+
+    document.getElementById('notes').addEventListener('input', ()=>{
+      document.getElementById('notesPreview').textContent = document.getElementById('notes').value;
+    });
+
+    // Currency symbol live update
+    currencyEl.addEventListener('input', ()=>{
+      document.querySelectorAll('#itemsEditor .sym').forEach(s=> s.textContent = currencyEl.value);
+      recalc();
+    });
+
+    // Tax & shipping
+    document.getElementById('taxPct').addEventListener('input', recalc);
+    document.getElementById('shipping').addEventListener('input', recalc);
+
+    // Logo upload
+    document.getElementById('logoInput').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = document.getElementById('logoPreview');
+        img.src = reader.result; img.classList.remove('d-none');
+      }
+      reader.readAsDataURL(file);
+    });
+
+    function recalc(){
+      let subtotal = 0;
+      itemsPreview.innerHTML = '';
+
+      Array.from(itemsTbody.querySelectorAll('tr')).forEach((row, idx)=>{
+        const qty = parseFloat(row.querySelector('.qty').value)||0;
+        const price = parseFloat(row.querySelector('.price').value)||0;
+        const desc = row.querySelector('.desc').value||'';
+        const line = qty * price;
+        subtotal += line;
+        row.querySelector('.lineTotal').textContent = fmt(line);
+
+        // preview row
+        const pTr = document.createElement('tr');
+        pTr.innerHTML = `
+          <td>${idx+1}</td>
+          <td>${desc}</td>
+          <td class="text-end">${qty}</td>
+          <td class="text-end">${fmt(price)}</td>
+          <td class="text-end">${fmt(line)}</td>`;
+        itemsPreview.appendChild(pTr);
+      });
+
+      const taxPct = parseFloat(document.getElementById('taxPct').value)||0;
+      const tax = subtotal * (taxPct/100);
+      const shipping = parseFloat(document.getElementById('shipping').value)||0;
+      const total = subtotal + tax + shipping;
+
+      document.getElementById('subtotalPreview').textContent = fmt(subtotal);
+      document.getElementById('taxPreview').textContent = `${fmt(tax)} (${taxPct.toFixed(2)}%)`;
+      document.getElementById('shippingPreview').textContent = fmt(shipping);
+      document.getElementById('totalPreview').textContent = fmt(total);
+
+      // update currency symbol shown in editor line totals
+      document.querySelectorAll('#itemsEditor .lineTotal').forEach(el=>{
+        if(!el.textContent.includes(currencyEl.value)){
+          // leave as formatted already; display is on preview
+        }
+      });
+    }
+
+    function renderPreview(){
+      recalc();
+    }
+
+    // Set default date to today
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('invoiceDate').value = today;
+    binds.find(([id])=>id==='invoiceDate') && (document.querySelector('[data-bind="invoiceDate"]').textContent = today);
+
+    // Seed initial row
+    addRow();
+
+    // Download
+    document.getElementById('btnDownload').addEventListener('click', async ()=>{
+      await recalc();
+      const preview = document.getElementById('preview');
+      const { jsPDF } = window.jspdf;
+
+      // Render preview to canvas
+      const canvas = await html2canvas(preview, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+
+      // A4 sizing
+      const pdf = new jsPDF('p','pt','a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+      const imgWidth = canvas.width * ratio;
+      const imgHeight = canvas.height * ratio;
+      const x = (pageWidth - imgWidth) / 2;
+      const y = 20;
+
+      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+      pdf.save('proforma_invoice.pdf');
+    });
+
+    // Print button
+    document.getElementById('btnPrint').addEventListener('click', ()=>{ window.print(); });
+  </script>
+</body>
+</html>
